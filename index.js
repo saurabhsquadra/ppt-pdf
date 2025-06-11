@@ -21,8 +21,8 @@ function downloadFile(url, outputPath) {
 }
 
 // POST endpoint to convert PPT to PDF
-app.get('/convert', async (req, res) => {
-    const fileUrl = decodeURIComponent((req.query.url || '').replace(/^"+|"+$/g, ''));
+app.post('/convert', async (req, res) => {
+    const fileUrl = req.body.url;
     console.log('🔗 Final URL:', fileUrl);
 
     try {

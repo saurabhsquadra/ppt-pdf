@@ -68,6 +68,10 @@ app.get('/convert', async (req, res) => {
     }
 });
 
+app.get('/', (req, res) => {
+    res.send('PPT to PDF Converter');
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

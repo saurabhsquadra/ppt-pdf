@@ -5,6 +5,7 @@ const { exec } = require('child_process');
 const path = require('path');
 const app = express();
 const PORT = 3000;
+app.use(express.json());
 
 // Helper: Download file from URL
 function downloadFile(url, outputPath) {

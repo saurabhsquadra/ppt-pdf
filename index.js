@@ -3,16 +3,21 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const { exec } = require('child_process');
+const cors = require('cors');
 
 const app = express();
 const PORT = 3000;
 
-// Multer setup to store uploaded files in `uploads/`
+// Enable CORS for frontend (adjust origins as needed)
+app.use(cors({
+    origin: ['https://ppt.lynklms.com', 'http://localhost:3000'],
+    methods: ['POST'],
+}));
+
+// Multer config - uploads go to 'uploads/' dir
 const upload = multer({ dest: 'uploads/' });
 
-app.use(express.json());
-
-// POST endpoint to convert uploaded PPT to PDF
+// Main endpoint: Upload PPTX and convert to PDF
 app.post('/convert', upload.single('pptFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No PPTX file uploaded' });
@@ -24,11 +29,11 @@ app.post('/convert', upload.single('pptFile'), async (req, res) => {
     try {
         if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
 
-        console.log('🔄 Converting to PDF...');
+        console.log(`🔄 Converting ${tempPptPath} to PDF...`);
         const command = `soffice --headless --convert-to pdf --outdir "${outputDir}" "${tempPptPath}"`;
 
         exec(command, (error, stdout, stderr) => {
-            fs.unlinkSync(tempPptPath); // Delete original PPT file
+            fs.unlinkSync(tempPptPath); // Cleanup uploaded file
 
             if (error) {
                 console.error('❌ Conversion error:', stderr || error.message);
@@ -41,7 +46,7 @@ app.post('/convert', upload.single('pptFile'), async (req, res) => {
             if (fs.existsSync(pdfFilePath)) {
                 const dynamicName = `${Date.now()}.pdf`;
                 res.download(pdfFilePath, dynamicName, (err) => {
-                    fs.unlinkSync(pdfFilePath); // Clean up after sending
+                    fs.unlinkSync(pdfFilePath); // Cleanup PDF after sending
                 });
             } else {
                 res.status(500).json({ error: 'PDF not found after conversion' });
@@ -53,10 +58,11 @@ app.post('/convert', upload.single('pptFile'), async (req, res) => {
     }
 });
 
+// Health check or homepage
 app.get('/', (req, res) => {
-    res.send('Upload PPTX and Convert to PDF');
+    res.send('🧾 PPT to PDF Converter live at ppt.lynklms.com');
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on http://ppt.lynklms.com:${PORT}`);
 });

@@ -11,7 +11,9 @@ const PORT = 3000;
 // Enable CORS for frontend (adjust origins as needed)
 app.use(cors({
     origin: ['https://ppt.lynklms.com', 'http://localhost:3000'],
-    methods: ['POST'],
+    methods: ['POST', 'GET'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+    
 }));
 
 // Multer config - uploads go to 'uploads/' dir

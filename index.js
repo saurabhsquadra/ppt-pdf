@@ -8,13 +8,7 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
-// Enable CORS for frontend (adjust origins as needed)
-app.use(cors({
-    origin: ['https://ppt.lynklms.com', 'http://localhost:3000', 'http://localhost:5500'],
-    methods: ['POST', 'GET'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-
-}));
+app.use(cors("*"));
 
 // Multer config - uploads go to 'uploads/' dir
 const upload = multer({ dest: 'uploads/' });

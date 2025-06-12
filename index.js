@@ -1,74 +1,51 @@
 const express = require('express');
 const fs = require('fs');
-const https = require('https');
-const { exec } = require('child_process');
 const path = require('path');
+const multer = require('multer');
+const { exec } = require('child_process');
+
 const app = express();
 const PORT = 3000;
+
+// Multer setup to store uploaded files in `uploads/`
+const upload = multer({ dest: 'uploads/' });
+
 app.use(express.json());
 
-// Helper: Download file from URL
-function downloadFile(url, outputPath) {
-    return new Promise((resolve, reject) => {
-        const file = fs.createWriteStream(outputPath);
-        https.get(url, (response) => {
-            response.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                resolve(outputPath);
-            });
-        }).on('error', reject);
-    });
-}
-
-// POST endpoint to convert PPT to PDF
-app.post('/convert', async (req, res) => {
-    const fileUrl = req.body.url;
-    console.log('🔗 Final URL:', fileUrl);
-
-    try {
-        new URL(fileUrl); // Will throw if malformed
-    } catch (err) {
-        return res.status(400).json({ error: 'Invalid URL' });
-    }
-    if (!fileUrl) {
-        return res.status(400).json({ error: 'Missing file URL' });
+// POST endpoint to convert uploaded PPT to PDF
+app.post('/convert', upload.single('pptFile'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No PPTX file uploaded' });
     }
 
-    const tempPptPath = './temp.pptx';
+    const tempPptPath = req.file.path;
     const outputDir = './output';
-    const outputPdfPath = path.join(outputDir, 'converted.pdf');
 
     try {
         if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
-
-        console.log('📥 Downloading PPTX...');
-        await downloadFile(fileUrl, tempPptPath);
 
         console.log('🔄 Converting to PDF...');
         const command = `soffice --headless --convert-to pdf --outdir "${outputDir}" "${tempPptPath}"`;
 
         exec(command, (error, stdout, stderr) => {
-            fs.unlinkSync(tempPptPath); // Clean up downloaded file
+            fs.unlinkSync(tempPptPath); // Delete original PPT file
 
             if (error) {
                 console.error('❌ Conversion error:', stderr || error.message);
                 return res.status(500).json({ error: 'Conversion failed' });
             }
 
-            // Find the actual output file name (LibreOffice renames to .pdf with same base name)
             const pdfFileName = path.basename(tempPptPath, path.extname(tempPptPath)) + '.pdf';
             const pdfFilePath = path.join(outputDir, pdfFileName);
 
             if (fs.existsSync(pdfFilePath)) {
                 const dynamicName = `${Date.now()}.pdf`;
                 res.download(pdfFilePath, dynamicName, (err) => {
-                    fs.unlinkSync(pdfFilePath); // Cleanup after sending
+                    fs.unlinkSync(pdfFilePath); // Clean up after sending
                 });
             } else {
                 res.status(500).json({ error: 'PDF not found after conversion' });
             }
-
         });
     } catch (err) {
         console.error('❌ Error:', err.message);
@@ -77,7 +54,7 @@ app.post('/convert', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send('PPT to PDF Converter');
+    res.send('Upload PPTX and Convert to PDF');
 });
 
 app.listen(PORT, () => {
